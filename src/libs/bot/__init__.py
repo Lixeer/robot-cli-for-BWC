@@ -9,6 +9,8 @@ class App:
         self.headers = {"X-Auth-Key":self.auth_key}
         self.name = name
 
+        self._callback_list = []
+
     async def _on_receive(self,websocket):
         while True:
 
@@ -17,25 +19,21 @@ class App:
                 response = json.loads(response)
 
                 print(f"\n{response['sender']}:{response['content']}")
-                if response["content"] == "你是谁你是谁":
-                    echo={"sender":self.name,
-                          "type":"message",
-                          "content":"我是中国的大美眉",
-                          "time":"2024-8-5-17-17"}
-                    await websocket.send(json.dumps(echo))
 
-                if response["content"] == "ping":
-                    echo={"sender":self.name,
-                          "type":"message",
-                          "content":"pong",
-                          "time":"2024-8-5-17-17"}
-                    await websocket.send(json.dumps(echo))
+                async def send(content):
+                    msg={"sender":self.name,
+                         "type":"message",
+                         "content":content,
+                         "time":"xxxx-xx-xx-xx-xx"}
+                    await websocket.send(json.dumps(msg))
 
-                echo={"sender":self.name,
-                      "type":"message",
-                      "content":response["content"],
-                      "time":"2024-8-5-17-17"}
-                await websocket.send(json.dumps(echo))
+
+                for i in self._callback_list:
+                    print(i,response["type"])
+                    if i[0] == response["type"]:
+                        print("jj")
+                        await i[1](websocket,send,**response)
+
 
 
             except websockets.ConnectionClosed:
@@ -49,6 +47,12 @@ class App:
 
             # 等待任务完成
             await asyncio.gather(receive_task)
+
+    def register(self,event:str):
+
+        def rg(callback_func):
+            self._callback_list.append((event,callback_func))
+        return rg
 
     def run(self):
         asyncio.run(self._start())
