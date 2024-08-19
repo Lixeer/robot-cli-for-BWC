@@ -1,7 +1,7 @@
 import json
 import websockets
 import asyncio
-
+from libs.loger import aloger
 class App:
     def __init__(self,uri,auth_key,name):
         self.auth_key = auth_key
@@ -17,8 +17,8 @@ class App:
             try:
                 response = await websocket.recv()
                 response = json.loads(response)
+                aloger.info(response)
 
-                print(f"\n{response['sender']}:{response['content']}")
 
                 async def send(content):
                     msg={"sender":self.name,
@@ -29,15 +29,13 @@ class App:
 
 
                 for i in self._callback_list:
-                    print(i,response["type"])
                     if i[0] == response["type"]:
-                        print("jj")
                         await i[1](websocket,send,**response)
 
 
 
             except websockets.ConnectionClosed:
-                print("Connection with server closed")
+                aloger.warn("Connection with server closed")
                 break
 
     async def _start(self):
@@ -55,4 +53,5 @@ class App:
         return rg
 
     def run(self):
+        aloger.info(f"Bot {self.name} is running in Server {self.uri}")
         asyncio.run(self._start())
